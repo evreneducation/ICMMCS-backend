@@ -1,78 +1,117 @@
-import express from "express";
-const router = express.Router();
-import {
-  login,
-  createAdmin,
-  getAllAdmins,
-  deleteAdmin,
-  getAdminInfo,
-  getReferredUsers,
-  // Registration management
-  getAllRegistrations,
-  getRegistrationById,
-  updateRegistration,
-  deleteRegistration,
-  // Speaker management
-  getAllSpeakers,
-  getSpeakerById,
-  updateSpeaker,
-  deleteSpeaker,
-  getSpeakerStats,
-  // Sponsor management
-  getAllSponsors,
-  getSponsorById,
-  updateSponsor,
-  deleteSponsor,
-  // Dashboard stats
-  getDashboardStats
-} from "../controllers/adminController.js";
-import { 
-  getAllKeynoteSpeakersForAdmin,
-  getKeynoteSpeakerById,
-  updateKeynoteSpeakerByAdmin,
-  updateKeynoteSpeakerStatus,
-  deleteKeynoteSpeaker,
-  getKeynoteSpeakerStatsForAdmin
-} from "../controllers/keynoteSpeakerController.js";
-import { authMiddleware } from "../middleware/authMiddleware.js";
-import { upload } from "../config/cloudinary.js";
+import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
 
-// Admin authentication routes
-router.post("/login", login);
-router.post("/create", authMiddleware, createAdmin);
-router.get("/all", authMiddleware, getAllAdmins);
-router.delete("/admins/:id", authMiddleware, deleteAdmin);
-router.get("/info", authMiddleware, getAdminInfo);
-router.get("/referred-users", authMiddleware, getReferredUsers);
+const prisma = new PrismaClient();
 
-// Dashboard
-router.get("/dashboard-stats", authMiddleware, getDashboardStats);
+export const authMiddleware = (req, res, next) => {
+  const authHeader = req.headers.authorization;
 
-// Registration management routes
-router.get("/registrations", authMiddleware, getAllRegistrations);
-router.get("/registrations/:id", authMiddleware, getRegistrationById);
-router.put("/registrations/:id", authMiddleware, updateRegistration);
-router.delete("/registrations/:id", authMiddleware, deleteRegistration);
+  if (!authHeader) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
 
-// Speaker management routes
-router.get("/speakers", authMiddleware, getAllSpeakers);
-router.get("/speakers/:id", authMiddleware, getSpeakerById);
-router.put("/speakers/:id", authMiddleware, upload.single('fileInput'), updateSpeaker);
-router.delete("/speakers/:id", authMiddleware, deleteSpeaker);
-router.get("/speakers/stats", authMiddleware, getSpeakerStats);
+  const parts = authHeader.split(' ');
 
-// Keynote Speaker management routes
-router.get("/keynote-speakers", authMiddleware, getAllKeynoteSpeakersForAdmin);
-router.get("/keynote-speakers/:id", authMiddleware, getKeynoteSpeakerById);
-router.put("/keynote-speakers/:id", authMiddleware, updateKeynoteSpeakerByAdmin);
-router.patch("/keynote-speakers/:id/status", authMiddleware, updateKeynoteSpeakerStatus);
-router.delete("/keynote-speakers/:id", authMiddleware, deleteKeynoteSpeaker);
-router.get("/keynote-speakers/admin/stats", authMiddleware, getKeynoteSpeakerStatsForAdmin);
+  if (parts.length !== 2) {
+    return res.status(401).json({ message: 'Token error' });
+  }
 
-// Sponsor management routes
-router.get("/sponsors", authMiddleware, getAllSponsors);
-router.get("/sponsors/:id", authMiddleware, getSponsorById);
-router.put("/sponsors/:id", authMiddleware, updateSponsor);
-router.delete("/sponsors/:id", authMiddleware, deleteSponsor);
+  const [scheme, token] = parts;
 
-export default router;
+  if (!/^Bearer$/i.test(scheme)) {
+    return res.status(401).json({ message: 'Token malformatted' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    req.user = decoded;
+    return next();
+  });
+};
+
+// Admin token verification middleware
+export const verifyToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No authorization token provided' 
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid token format' 
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Find admin in database to get role
+    const admin = await prisma.admin.findUnique({
+      where: { id: decoded.id }
+    });
+
+    if (!admin) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Admin not found' 
+      });
+    }
+
+    req.admin = admin;
+    next();
+  } catch (error) {
+    console.error('Token verification error:', error);
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Invalid or expired token' 
+    });
+  }
+};
+
+// Require admin role (both ADMIN and SUPER_ADMIN)
+export const requireAdmin = (req, res, next) => {
+  if (!req.admin) {
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Authentication required' 
+    });
+  }
+
+  if (req.admin.role !== 'ADMIN' && req.admin.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Admin access required' 
+    });
+  }
+
+  next();
+};
+
+// Require super admin role
+export const requireSuperAdmin = (req, res, next) => {
+  if (!req.admin) {
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Authentication required' 
+    });
+  }
+
+  if (req.admin.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Super admin access required' 
+    });
+  }
+
+  next();
+};
