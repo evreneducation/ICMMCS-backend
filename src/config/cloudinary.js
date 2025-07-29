@@ -39,7 +39,7 @@ const paperStorage = new CloudinaryStorage({
 export const upload = multer({ 
   storage: paperStorage,
   limits: {
-    fileSize: 20 * 1024 * 1024, // 20MB limit for supplementary files
+    fileSize: 50 * 1024 * 1024, // 50MB limit for supplementary files
   },
   fileFilter: (req, file, cb) => {
     console.log('Paper submission file upload attempt:', {
