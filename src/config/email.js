@@ -12,9 +12,9 @@ export const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
   },
-  tls: {
-    rejectUnauthorized: true,
-  },
+  // tls: {
+  //   rejectUnauthorized: true,
+  // },
 });
 
 // export let transport = nodemailer.createTransport({
@@ -39,3 +39,4 @@ transporter
     console.log("Email verification error: ", error);
     process.exit(1);
   });
+
