@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { sendSpeakerToCommitteeEmail } from '../services/emailService.js';
+// import { sendSpeakerToCommitteeEmail } from '../services/emailService.js';
 
 const prisma = new PrismaClient();
 
@@ -289,9 +289,9 @@ export const sendSpeakerToCommittee = async (req, res) => {
     }
 
     // Send emails to selected committee members
-    const emailPromises = selectedMembers.map(member => 
-      sendSpeakerToCommitteeEmail(speaker, member)
-    );
+    // const emailPromises = selectedMembers.map(member => 
+    //    sendSpeakerToCommitteeEmail(speaker, member)
+    // );
 
     try {
       await Promise.all(emailPromises);

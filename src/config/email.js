@@ -1,7 +1,7 @@
-import nodemailer from "nodemailer";
-import { config } from "dotenv";
+// import nodemailer from "nodemailer";
+// import { config } from "dotenv";
 
-config();
+// config();
 
 export const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -27,8 +27,11 @@ export const transporter = nodemailer.createTransport({
 //     rejectUnauthorized: false, // Prevents certificate validation errors
 //   },
 //   auth: {
-//     user: process.env.EMAIL_ID, // Your Outlook email
-//     pass: process.env.PASSWORD_EMAIL, // Use App Password if needed
+//     user: process.env.EMAIL_USER,
+//     pass: process.env.EMAIL_PASSWORD,
+//   },
+//   tls: {
+//     rejectUnauthorized: true,
 //   },
 // });
 
