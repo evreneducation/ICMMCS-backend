@@ -1,5 +1,5 @@
 import { prisma } from "../config/db.js";
-import { sendKeynoteSpeakerRegistrationEmail } from "../services/emailService.js";
+// import { sendKeynoteSpeakerRegistrationEmail } from "../services/emailService.js";
 
 // Validation functions
 const validateEmail = (email) => {
@@ -222,7 +222,7 @@ export const registerKeynoteSpeaker = async (req, res) => {
 
     // Send registration confirmation emails
     try {
-      await sendKeynoteSpeakerRegistrationEmail(newKeynoteSpeaker);
+      // await sendKeynoteSpeakerRegistrationEmail(newKeynoteSpeaker);
     } catch (emailError) {
       console.error('Email service error:', emailError);
       // Don't fail the registration if email fails

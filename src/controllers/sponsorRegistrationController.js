@@ -1,5 +1,5 @@
 import { prisma } from "../config/db.js";
-import { sendSponsorRegistrationEmail } from "../services/emailService.js";
+// import { sendSponsorRegistrationEmail } from "../services/emailService.js";
 
 // Validation functions
 const validateEmail = (email) => {
@@ -80,7 +80,7 @@ export const registerSponsor = async (req, res) => {
     });
 
     // Send registration confirmation emails
-    await sendSponsorRegistrationEmail(newSponsor);
+    // await sendSponsorRegistrationEmail(newSponsor);
 
     res.status(201).json({
       message: "Sponsor registered successfully",

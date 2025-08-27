@@ -11,9 +11,9 @@ import reviewingCommitteeRoutes from './routes/reviewingCommitteeRoutes.js';
 import { connectDB } from './config/db.js';
 import adminRoutes from './routes/adminRoutes.js';
 import userRoutes from './routes/userRoutes.js';
-import contactRoutes from './routes/contact.js';
+// import contactRoutes from './routes/contact.js';
 import reviewerExpressionRoutes from "./routes/reviewerExpressionRoutes.js";
-import { startReviewReminderJob } from './jobs/reviewReminderJob.js';
+// import { startReviewReminderJob } from './jobs/reviewReminderJob.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,7 +45,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Connect to database
 connectDB();
-startReviewReminderJob();
+// startReviewReminderJob();
 
 app.get('/', (req, res) => {
     res.send('Hello, World!');
@@ -59,7 +59,7 @@ app.use('/api/keynote-speaker', keynoteSpeakerRoutes);
 app.use('/api/reviewing-committee', reviewingCommitteeRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/contact', contactRoutes);
+// app.use('/api/contact', contactRoutes);
 app.use("/api/reviewer-expression", reviewerExpressionRoutes);
 
 // Error handling middleware
