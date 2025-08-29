@@ -57,8 +57,8 @@ export async function sendUserRegisterEmail(userRegisterData) {
 
   try {
     await Promise.all([
-      transporter.sendMail(mailOptions),
-      transporter.sendMail(confirmationMailOptions),
+      sendMailSafe(mailOptions),
+      sendMailSafe(confirmationMailOptions),
     ]);
 
     console.log(
@@ -94,8 +94,8 @@ export async function sendSpeakerRegistrationEmail(speakerData) {
 
   try {
     await Promise.all([
-      transporter.sendMail(speakerMailOptions),
-      transporter.sendMail(adminMailOptions),
+      sendMailSafe(speakerMailOptions),
+      sendMailSafe(adminMailOptions),
     ]);
 
     console.log(
@@ -132,8 +132,8 @@ export async function sendSponsorRegistrationEmail(sponsorData) {
 
   try {
     await Promise.all([
-      transporter.sendMail(sponsorMailOptions),
-      transporter.sendMail(adminMailOptions),
+      sendMailSafe(sponsorMailOptions),
+      sendMailSafe(adminMailOptions),
     ]);
 
     console.log(
@@ -170,8 +170,8 @@ export async function sendKeynoteSpeakerRegistrationEmail(keynoteSpeakerData) {
 
   try {
     await Promise.all([
-      transporter.sendMail(keynoteSpeakerMailOptions),
-      transporter.sendMail(adminMailOptions),
+      sendMailSafe(keynoteSpeakerMailOptions),
+      sendMailSafe(adminMailOptions),
     ]);
 
     console.log(
