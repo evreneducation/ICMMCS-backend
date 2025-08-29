@@ -101,47 +101,120 @@
 
 
 // src/config/email.js
+// import nodemailer from "nodemailer";
+// import { config } from "dotenv";
+// config();
+
+// // ENV (kept simple, no helper functions)
+// const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
+// const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
+// // if SMTP_SECURE is set, respect it; otherwise default true for port 465
+// const SMTP_SECURE =
+//   typeof process.env.SMTP_SECURE !== "undefined"
+//     ? String(process.env.SMTP_SECURE).toLowerCase() === "true"
+//     : SMTP_PORT === 465;
+
+// export const transporter = nodemailer.createTransport({
+//   host: SMTP_HOST,
+//   port: SMTP_PORT,
+//   secure: SMTP_SECURE, // true for 465, false for 587
+//   auth: (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD)
+//     ? { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASSWORD }
+//     : undefined,
+//   // pooling + timeouts keep Railway from hanging
+//   pool: String(process.env.SMTP_POOL || "true").toLowerCase() === "true",
+//   maxConnections: Number(process.env.SMTP_MAX_CONNECTIONS || 3),
+//   maxMessages: Number(process.env.SMTP_MAX_MESSAGES || 50),
+//   connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT || 10000),
+//   greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT || 10000),
+//   socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT || 20000),
+// });
+
+// // Optional: verify on boot (will NOT crash app)
+// (async () => {
+//   if (String(process.env.EMAIL_VERIFY_ON_BOOT || "").toLowerCase() !== "true") return;
+//   try {
+//     await transporter.verify();
+//     console.log(`Email: SMTP ready (${SMTP_HOST}:${SMTP_PORT}, secure=${SMTP_SECURE})`);
+//   } catch (err) {
+//     console.warn("Email: SMTP verify warning:", err?.message || err);
+//   }
+// })();
+
+// // Optional: keep for callers that want a retry without any other imports
+// export async function sendWithRetry(mailOptions, attempts = 3) {
+//   let lastErr;
+//   for (let i = 1; i <= attempts; i++) {
+//     try {
+//       return await transporter.sendMail(mailOptions);
+//     } catch (err) {
+//       lastErr = err;
+//       const code = err?.code || "";
+//       const transient = code === "ETIMEDOUT" || code === "ECONNRESET" || code === "ECONNREFUSED";
+//       if (!transient || i === attempts) break;
+//       await new Promise(r => setTimeout(r, 1000 * i)); // simple backoff
+//     }
+//   }
+//   throw lastErr;
+// }
+
+
+// src/config/email.js
 import nodemailer from "nodemailer";
 import { config } from "dotenv";
 config();
 
-// ENV (kept simple, no helper functions)
+/**
+ * Environment handling
+ * Prefer SMTP_*; fall back to EMAIL_USER/PASSWORD for quick local use.
+ */
 const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
-const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
-// if SMTP_SECURE is set, respect it; otherwise default true for port 465
-const SMTP_SECURE =
-  typeof process.env.SMTP_SECURE !== "undefined"
-    ? String(process.env.SMTP_SECURE).toLowerCase() === "true"
-    : SMTP_PORT === 465;
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 
+/**
+ * secure = true for 465 (implicit TLS), false for 587 (STARTTLS).
+ * If SMTP_SECURE is set, we respect it. Otherwise infer from port.
+ */
+const SMTP_SECURE = typeof process.env.SMTP_SECURE !== "undefined"
+  ? String(process.env.SMTP_SECURE).toLowerCase() === "true"
+  : SMTP_PORT === 465;
+
+const SMTP_USER = process.env.SMTP_USER || process.env.EMAIL_USER || "";
+const SMTP_PASS = process.env.SMTP_PASS || process.env.EMAIL_PASSWORD || "";
+
+/**
+ * Create a single transporter. Pooling + timeouts help on Railway.
+ */
 export const transporter = nodemailer.createTransport({
   host: SMTP_HOST,
   port: SMTP_PORT,
-  secure: SMTP_SECURE, // true for 465, false for 587
-  auth: (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD)
-    ? { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASSWORD }
-    : undefined,
-  // pooling + timeouts keep Railway from hanging
+  secure: SMTP_SECURE,
+  auth: (SMTP_USER && SMTP_PASS) ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
   pool: String(process.env.SMTP_POOL || "true").toLowerCase() === "true",
   maxConnections: Number(process.env.SMTP_MAX_CONNECTIONS || 3),
-  maxMessages: Number(process.env.SMTP_MAX_MESSAGES || 50),
-  connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT || 10000),
+  maxMessages: Number(process.env.SMTP_MAX_MESSAGES || 100),
+  connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT || 15000),
   greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT || 10000),
-  socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT || 20000),
+  socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT || 30000),
 });
 
-// Optional: verify on boot (will NOT crash app)
+/**
+ * Optional: verify connectivity on boot (won’t crash the app).
+ * Enable by setting EMAIL_VERIFY_ON_BOOT=true locally or on Railway.
+ */
 (async () => {
   if (String(process.env.EMAIL_VERIFY_ON_BOOT || "").toLowerCase() !== "true") return;
   try {
     await transporter.verify();
-    console.log(`Email: SMTP ready (${SMTP_HOST}:${SMTP_PORT}, secure=${SMTP_SECURE})`);
+    console.log(`[Email] SMTP ready: ${SMTP_HOST}:${SMTP_PORT} (secure=${SMTP_SECURE})`);
   } catch (err) {
-    console.warn("Email: SMTP verify warning:", err?.message || err);
+    console.warn("[Email] SMTP verify warning:", err?.message || err);
   }
 })();
 
-// Optional: keep for callers that want a retry without any other imports
+/**
+ * Lightweight retry for transient PaaS hiccups.
+ */
 export async function sendWithRetry(mailOptions, attempts = 3) {
   let lastErr;
   for (let i = 1; i <= attempts; i++) {
@@ -150,13 +223,14 @@ export async function sendWithRetry(mailOptions, attempts = 3) {
     } catch (err) {
       lastErr = err;
       const code = err?.code || "";
-      const transient = code === "ETIMEDOUT" || code === "ECONNRESET" || code === "ECONNREFUSED";
+      const transient = ["ETIMEDOUT", "ECONNRESET", "ECONNREFUSED", "ESOCKET"].includes(code);
       if (!transient || i === attempts) break;
       await new Promise(r => setTimeout(r, 1000 * i)); // simple backoff
     }
   }
   throw lastErr;
 }
+
 
 
 
