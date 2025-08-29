@@ -1,5 +1,5 @@
 import { prisma } from '../config/db.js';
-// import { sendUserRegisterEmail } from '../services/emailService.js';
+import { sendUserRegisterEmail } from '../services/emailService.js';
 
 export const registerUser = async (req, res) => {
     const registerUserData = req.body;
@@ -39,7 +39,7 @@ export const registerUser = async (req, res) => {
 
 
         // Send confirmation emails
-        // await sendUserRegisterEmail(registerUserData);
+        await sendUserRegisterEmail(registerUserData);
 
         res.status(201).json({ 
             message: 'User registered successfully', 
