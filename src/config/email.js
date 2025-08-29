@@ -28,7 +28,7 @@
 
 import nodemailer from "nodemailer";
 import { config } from "dotenv";
-import { sendMailSafe } from "../services/emailService";
+import { sendMailSafe } from "../services/emailService.js";
 config();
 
 /**
