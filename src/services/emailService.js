@@ -1,4 +1,4 @@
-import { transporter } from "../config/email.js";
+import { sendWithRetry, transporter } from "../config/email.js";
 import {
   welcomeTemplate,
   adminNotificationTemplate,
