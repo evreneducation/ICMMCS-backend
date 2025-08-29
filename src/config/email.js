@@ -28,7 +28,7 @@
 
 import nodemailer from "nodemailer";
 import { config } from "dotenv";
-import { sendMailSafe } from "../services/emailService";
+import { sendMailSafe } from "../services/emailService.js";
 config();
 
 /**
@@ -95,6 +95,7 @@ export async function sendWithRetry(mailOptions, attempts = 3) {
   }
   throw lastErr;
 }
+
 
 
 
