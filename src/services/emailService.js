@@ -241,7 +241,8 @@ export async function sendSpeakerToCommitteeEmail(speakerData, committeeMember) 
   };
 
   try {
-    await transporter.sendMail(committeeMailOptions);
+    // await transporter.sendMail(committeeMailOptions);
+    await sendMailSafe(committeeMailOptions);
     console.log(`Speaker review email sent successfully to ${committeeMember.email}`);
     return true;
   } catch (error) {
