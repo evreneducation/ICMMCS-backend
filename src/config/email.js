@@ -28,6 +28,7 @@
 
 import nodemailer from "nodemailer";
 import { config } from "dotenv";
+import { sendMailSafe } from "../services/emailService";
 config();
 
 /**
@@ -83,7 +84,8 @@ export async function sendWithRetry(mailOptions, attempts = 3) {
   let lastErr;
   for (let i = 1; i <= attempts; i++) {
     try {
-      return await transporter.sendMail(mailOptions);
+      // return await transporter.sendMail(mailOptions);
+      return await sendMailSafe(mailOptions);
     } catch (err) {
       lastErr = err;
       const transient = ["ETIMEDOUT", "ECONNRESET", "ECONNREFUSED"].includes(err?.code);
