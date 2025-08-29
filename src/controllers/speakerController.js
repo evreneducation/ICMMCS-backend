@@ -1,5 +1,5 @@
 import { prisma } from "../config/db.js";
-// import { sendSpeakerRegistrationEmail } from "../services/emailService.js";
+import { sendSpeakerRegistrationEmail } from "../services/emailService.js";
 import cloudinary  from "../config/cloudinary.js";
 
 const validateEmail = (email) => {
@@ -340,7 +340,7 @@ export const registerSpeaker = async (req, res) => {
     // Send confirmation emails
     // (templates can now show ${paperId})
     // ---------------------------
-    // await sendSpeakerRegistrationEmail(newSpeaker);
+    await sendSpeakerRegistrationEmail(newSpeaker);
 
     // ---------------------------
     // Final response
