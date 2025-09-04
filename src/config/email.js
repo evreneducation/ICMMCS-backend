@@ -159,61 +159,26 @@
 // }
 
 
-// src/config/email.js
 import nodemailer from "nodemailer";
 import { config } from "dotenv";
 config();
 
 /**
- * Environment handling
- * Prefer SMTP_*; fall back to EMAIL_USER/PASSWORD for quick local use.
- */
-const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
-const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
-
-/**
- * secure = true for 465 (implicit TLS), false for 587 (STARTTLS).
- * If SMTP_SECURE is set, we respect it. Otherwise infer from port.
- */
-const SMTP_SECURE = typeof process.env.SMTP_SECURE !== "undefined"
-  ? String(process.env.SMTP_SECURE).toLowerCase() === "true"
-  : SMTP_PORT === 465;
-
-const SMTP_USER = process.env.SMTP_USER || process.env.EMAIL_USER || "";
-const SMTP_PASS = process.env.SMTP_PASS || process.env.EMAIL_PASSWORD || "";
-
-/**
- * Create a single transporter. Pooling + timeouts help on Railway.
+ * Minimal Gmail SMTP (STARTTLS on 587).
+ * Uses only EMAIL_USER and EMAIL_PASSWORD from .env
  */
 export const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_SECURE,
-  auth: (SMTP_USER && SMTP_PASS) ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
-  pool: String(process.env.SMTP_POOL || "true").toLowerCase() === "true",
-  maxConnections: Number(process.env.SMTP_MAX_CONNECTIONS || 3),
-  maxMessages: Number(process.env.SMTP_MAX_MESSAGES || 100),
-  connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT || 15000),
-  greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT || 10000),
-  socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT || 30000),
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // STARTTLS
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD, // Use an App Password for Gmail
+  },
 });
 
 /**
- * Optional: verify connectivity on boot (won’t crash the app).
- * Enable by setting EMAIL_VERIFY_ON_BOOT=true locally or on Railway.
- */
-(async () => {
-  if (String(process.env.EMAIL_VERIFY_ON_BOOT || "").toLowerCase() !== "true") return;
-  try {
-    await transporter.verify();
-    console.log(`[Email] SMTP ready: ${SMTP_HOST}:${SMTP_PORT} (secure=${SMTP_SECURE})`);
-  } catch (err) {
-    console.warn("[Email] SMTP verify warning:", err?.message || err);
-  }
-})();
-
-/**
- * Lightweight retry for transient PaaS hiccups.
+ * Optional: small retry helper for transient network issues.
  */
 export async function sendWithRetry(mailOptions, attempts = 3) {
   let lastErr;
@@ -222,10 +187,9 @@ export async function sendWithRetry(mailOptions, attempts = 3) {
       return await transporter.sendMail(mailOptions);
     } catch (err) {
       lastErr = err;
-      const code = err?.code || "";
-      const transient = ["ETIMEDOUT", "ECONNRESET", "ECONNREFUSED", "ESOCKET"].includes(code);
+      const transient = ["ETIMEDOUT", "ECONNRESET", "ECONNREFUSED"].includes(err?.code);
       if (!transient || i === attempts) break;
-      await new Promise(r => setTimeout(r, 1000 * i)); // simple backoff
+      await new Promise((r) => setTimeout(r, 1000 * i)); // simple backoff
     }
   }
   throw lastErr;
