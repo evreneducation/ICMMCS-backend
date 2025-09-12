@@ -1,4 +1,4 @@
-import { sendWithRetry, transporter } from "../config/email.js";
+import { transporter } from "../config/email.js";
 import {
   welcomeTemplate,
   adminNotificationTemplate,
@@ -9,53 +9,25 @@ import {
 } from "../utils/emailTemplates/userRegistration.js";
 import { isMailerBlocked, nextSendTime, shouldCooldownFor, tripMailerCooldown } from "./mailerGuard.js";
 
-// export async function sendMailSafe(options) {
-//   if (isMailerBlocked()) {
-//     console.warn(
-//       `[MailerGuard] Blocked; skipping send to ${options.to}. Retry after ${new Date(nextSendTime()).toISOString()}`
-//     );
-//     return { skipped: true, reason: "mailer_cooldown" };
-//   }
-
-//   try {
-//     const info = await transporter.sendMail(options);
-//     return info;
-//   } catch (err) {
-//     if (shouldCooldownFor(err)) {
-//       // Enter cooldown so we stop hammering Gmail until quota resets
-//       tripMailerCooldown();
-//     }
-//     throw err;
-//   }
-// }
-
 export async function sendMailSafe(options) {
   if (isMailerBlocked()) {
-    console.warn("[MailerGuard] Blocked sending email due to cooldown.");
-    return { blocked: true };
+    console.warn(
+      `[MailerGuard] Blocked; skipping send to ${options.to}. Retry after ${new Date(nextSendTime()).toISOString()}`
+    );
+    return { skipped: true, reason: "mailer_cooldown" };
   }
 
-  const mailOptions = {
-    ...options,
-    from: options.from || process.env.MAIL_FROM || process.env.SMTP_USER || process.env.EMAIL_USER,
-    headers: {
-      ...(options.headers || {}),
-      "X-Mailer-App": "ICMMCS-backend",
-      "X-Env": process.env.NODE_ENV || "development",
-    },
-  };
-
   try {
-    const info = await sendWithRetry(mailOptions, 3);
-    tripMailerCooldown(false);
+    const info = await transporter.sendMail(options);
     return info;
   } catch (err) {
-    tripMailerCooldown(true);
-    console.error("[Email] sendMailSafe error:", err?.code || "", err?.message || err);
+    if (shouldCooldownFor(err)) {
+      // Enter cooldown so we stop hammering Gmail until quota resets
+      tripMailerCooldown();
+    }
     throw err;
   }
 }
-
 
 function validateUserData(userData) {
   if (!userData.email || !userData.name) {
@@ -72,7 +44,7 @@ export async function sendUserRegisterEmail(userRegisterData) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: userRegisterData.email,
-    subject: "ICMMCS 2025 | Conference Registration Email",
+    subject: "ICMMCS 2025 | Conference Registration",
     html: welcomeTemplate(userRegisterData),
   };
 
@@ -85,8 +57,8 @@ export async function sendUserRegisterEmail(userRegisterData) {
 
   try {
     await Promise.all([
-      sendMailSafe(mailOptions),
-      sendMailSafe(confirmationMailOptions),
+      transporter.sendMail(mailOptions),
+      transporter.sendMail(confirmationMailOptions),
     ]);
 
     console.log(
@@ -122,8 +94,8 @@ export async function sendSpeakerRegistrationEmail(speakerData) {
 
   try {
     await Promise.all([
-      sendMailSafe(speakerMailOptions),
-      sendMailSafe(adminMailOptions),
+      transporter.sendMail(speakerMailOptions),
+      transporter.sendMail(adminMailOptions),
     ]);
 
     console.log(
@@ -160,8 +132,8 @@ export async function sendSponsorRegistrationEmail(sponsorData) {
 
   try {
     await Promise.all([
-      sendMailSafe(sponsorMailOptions),
-      sendMailSafe(adminMailOptions),
+      transporter.sendMail(sponsorMailOptions),
+      transporter.sendMail(adminMailOptions),
     ]);
 
     console.log(
@@ -198,8 +170,8 @@ export async function sendKeynoteSpeakerRegistrationEmail(keynoteSpeakerData) {
 
   try {
     await Promise.all([
-      sendMailSafe(keynoteSpeakerMailOptions),
-      sendMailSafe(adminMailOptions),
+      transporter.sendMail(keynoteSpeakerMailOptions),
+      transporter.sendMail(adminMailOptions),
     ]);
 
     console.log(
@@ -269,8 +241,7 @@ export async function sendSpeakerToCommitteeEmail(speakerData, committeeMember) 
   };
 
   try {
-    // await transporter.sendMail(committeeMailOptions);
-    await sendMailSafe(committeeMailOptions);
+    await transporter.sendMail(committeeMailOptions);
     console.log(`Speaker review email sent successfully to ${committeeMember.email}`);
     return true;
   } catch (error) {
@@ -842,7 +813,7 @@ const speakerReviewCommitteeTemplate = (speakerData, committeeMember) => `
         <ul>
           <li><strong>Conference Email:</strong> info@icmmcs.org</li>
           <li><strong>Phone:</strong> +968 93391308 / +91-9540111207</li>
-          <li><strong>Review Deadline:</strong> Please provide your feedback within 72 hours</li>
+          <li><strong>Review Deadline:</strong> Please provide your feedback within 72 hour</li>
         </ul>
       </div>
       

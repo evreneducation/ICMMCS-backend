@@ -311,17 +311,62 @@ export const updateRegistration = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
     
+    // Get the current registration to check if payment status is changing
+    const currentRegistration = await prisma.registerUser.findUnique({
+      where: { id: parseInt(id) }
+    });
+    
+    if (!currentRegistration) {
+      return res.status(404).json({ message: 'Registration not found' });
+    }
+    
+    // Update the registration
     const registration = await prisma.registerUser.update({
       where: { id: parseInt(id) },
       data: updateData
     });
     
-    res.json({ message: 'Registration updated successfully', registration });
+    // Check if payment status changed from pending to paid
+    const paymentStatusChanged = 
+      currentRegistration.isPaid === false && 
+      updateData.isPaid === true;
+    
+    let emailSendResult = null;
+    
+    // Send payment confirmation email if status changed to paid
+    if (paymentStatusChanged) {
+      const mailHtml = paymentReceivedTemplate(registration);
+      
+      const mailOptions = {
+        from: `"ICMMCS 2025" <${process.env.EMAIL_USER}>`,
+        to: registration.email,
+        subject: 'Payment Received — ICMMCS 2025',
+        html: mailHtml,
+      };
+      
+      try {
+        const info = await sendWithRetry(mailOptions, 3);
+        console.log('Payment email sent:', info);
+        emailSendResult = { ok: true, info };
+      } catch (mailErr) {
+        console.error('Payment email send failed:', mailErr);
+        emailSendResult = { ok: false, error: mailErr.message || String(mailErr) };
+      }
+    }
+    
+    res.json({ 
+      message: 'Registration updated successfully', 
+      registration,
+      email: emailSendResult
+    });
+    
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+
 
 export const deleteRegistration = async (req, res) => {
   try {
