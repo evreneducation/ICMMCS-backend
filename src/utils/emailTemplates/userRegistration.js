@@ -12,7 +12,7 @@ export const welcomeTemplate = (userData) => `
     .info-section { margin: 20px 0; }
     .info-section h3 { color: #019087; margin-bottom: 10px; }
     ul { padding-left: 20px; }
-    .footer { text-align: center; color: #666; font-size: 14px; margin-top: 30px; }
+    .footer { text-align: center; color: #666; font-size: 14px; margin-top: 30px; } 
   </style>
 </head>
 <body>
